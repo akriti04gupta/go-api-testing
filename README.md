@@ -1,4 +1,3 @@
-````md
 # Go API Testing Tutorial
 
 A beginner-friendly developer documentation site that demonstrates how real API traffic from a **Go + Echo + PostgreSQL** application can be turned into repeatable automated tests using **Keploy**.
@@ -363,26 +362,8 @@ The tutorial is based on actually running the **Go + Echo + PostgreSQL** quickst
 
 ---
 
-## 📄 License
-
-This project was created as an assignment and is intended for demonstration and educational purposes.
-
----
 
 **Built with Next.js + MDX + Tailwind CSS 🚀**
 
 ````
-
-### One important change before you paste it
-
-Don't leave:
-
-```text
-https://YOUR-VERCEL-URL.vercel.app
-````
-
-Once Vercel gives you the actual URL, replace **both occurrences** with your real deployment URL.
-
-Also, I deliberately **didn't copy the benchmark's claims** like "Shiki", "Rehype Pretty Code", or "Next.js 16.1.6" because your current project should only claim technologies/components you actually used. That makes your README more credible in a review.
-
 And I'd **keep the README around this length**. The benchmark README is quite long, but for a DevRel assignment, this version is easier for a reviewer to scan while still demonstrating that you understand the project.
