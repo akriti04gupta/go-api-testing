@@ -1,0 +1,378 @@
+import Hero from "./components/Hero";
+import ArchitectureDiagram from "./components/ArchitectureDiagram";
+import Callout from "./components/Callout";
+
+<Hero />
+
+<h2 id="what-youll-build">What you'll build</h2>
+
+What if your real API traffic could become your regression test suite?
+
+That's the idea behind **Keploy**.
+
+In this tutorial, we'll use a small **Go + Echo + PostgreSQL URL shortener** to go from a real API request to a repeatable automated test.
+
+### The workflow
+
+```text
+Run the application
+        ↓
+Make real API calls
+        ↓
+Keploy records requests + dependencies
+        ↓
+Test cases + mocks are generated
+        ↓
+Replay and verify
+````
+
+<h2 id="before-we-start">Before we start</h2>
+
+You'll need:
+
+- **Go 1.x** — to build the sample application. [Install Go](https://go.dev/doc/install)
+- **Docker** — PostgreSQL runs in a container. [Install Docker](https://docs.docker.com/get-docker/)
+- **curl** — to send API requests.
+- **Keploy CLI** — to record and replay API traffic. [Install Keploy](https://keploy.io/docs/server/installation/)
+- **Linux/WSL** — required for the local setup used in this tutorial.
+
+### Quick setup
+
+Make sure these are available in your terminal:
+
+```bash
+go version
+docker --version
+curl --version
+keploy --version
+````
+
+If all four commands return a version, you're ready to continue.
+
+
+<Callout type="info">
+  Using Windows? Run the commands inside WSL. 
+</Callout>
+
+<Callout type="info" title="Environment used in this tutorial">
+  This walkthrough was tested on **Linux/WSL** with Docker running locally.
+  The Go application runs directly on your machine, while PostgreSQL runs
+  inside Docker.
+</Callout>
+
+You don't need prior Keploy experience. The important idea is simple:
+
+> **Record mode** observes real application traffic and dependencies.
+> **Test mode** replays that interaction as a repeatable test.
+
+---
+
+<h2 id="1-get-the-go-application">1. Get the Go application</h2>
+
+We'll use Keploy's [Go sample repository](https://github.com/keploy/samples-go) and its Echo + PostgreSQL URL shortener.
+
+Clone the repository:
+
+```bash
+git clone https://github.com/keploy/samples-go.git
+cd samples-go/echo-sql
+```
+
+![Go sample repository and Echo SQL project setup](/project_setup.png)
+
+Download the Go dependencies:
+
+```bash
+go mod download
+```
+
+The sample exposes two main operations:
+
+```text
+POST /url
+    ↓
+Create a short URL
+
+GET /:id
+    ↓
+Redirect to the original URL
+```
+<Callout type="info" title="Why this sample?">
+
+This sample is intentionally small: the API has only two operations,
+so you can see exactly what Keploy records without getting lost in
+application code.
+
+</Callout>
+---
+
+<h2 id="2-start-postgresql">2. Start PostgreSQL</h2>
+
+The application stores URL mappings in PostgreSQL.
+
+Start PostgreSQL with Docker Compose. If you're new to Docker Compose, see the [Docker Compose documentation](https://docs.docker.com/compose/).
+
+
+```bash
+docker compose up -d postgres
+```
+
+![PostgreSQL running through Docker Compose](/postgres-setup.png)
+
+Verify that the container is running:
+
+```bash
+sudo docker ps
+```
+
+You should see the PostgreSQL container running.
+
+### One small configuration change
+
+In this setup, **PostgreSQL runs inside Docker while the Go application runs directly on your machine**.
+
+That means the application should connect to PostgreSQL through `localhost`.
+
+In `main.go`, update:
+
+```go
+host: "postgresDb",
+```
+
+to:
+
+```go
+host: "localhost",
+```
+<Callout type="info" title="Why Docker?">
+
+We keep PostgreSQL isolated in a container so you don't need to install
+and configure PostgreSQL locally.
+
+</Callout>
+---
+
+<h2 id="3-build-the-go-application">3. Build the Go application</h2>
+
+Build the sample:
+
+```bash
+go build -cover
+```
+
+This creates the application binary:
+
+```text
+echo-psql-url-shortener
+```
+
+You can verify it with:
+
+```bash
+ls -lh echo-psql-url-shortener
+```
+
+---
+
+<h2 id="4-record-api-traffic-with-keploy"> 4. Record API traffic with Keploy</h2>
+
+This is where Keploy enters the workflow.
+
+Instead of starting the application directly, let Keploy start it:
+
+```bash
+sudo -E keploy record -c "./echo-psql-url-shortener"
+```
+![Keploy recording API traffic](/keploy_record.png)
+
+Keploy starts its recording agent and launches the application.
+
+You should eventually see messages indicating that Keploy is ready to record test cases and mocks.
+
+### What is Keploy doing?
+
+Without Keploy:
+
+```text
+curl → Go + Echo → PostgreSQL
+```
+
+With Keploy:
+
+```text
+curl → Keploy → Go + Echo → PostgreSQL
+          │
+          └── records the interaction
+```
+
+Keploy observes the API request and the application's dependency interaction, so the same behaviour can later be replayed as a test.
+
+<Callout type="info" title="What Keploy is doing">
+
+In record mode, Keploy sits between your client and application and
+captures the API interaction along with dependency behaviour.
+
+</Callout>
+---
+
+<h2 id="5-generate-test-cases-with-real-api-calls">5. Generate test cases with real API calls</h2>
+
+Keep the Keploy recording terminal running.
+
+Open another terminal and create a short URL:
+
+```bash
+curl --request POST \
+  --url http://localhost:8082/url \
+  --header 'content-type: application/json' \
+  --data '{
+    "url": "https://github.com"
+  }'
+```
+
+You should receive a response containing the generated short URL:
+
+```json
+{
+  "ts": 1645540022,
+  "url": "http://localhost:8082/4KepjkTT"
+}
+```
+
+The exact short ID will be different on your machine.
+
+Now replay the shortened URL:
+
+```bash
+curl --request GET \
+  --url http://localhost:8082/4KepjkTT
+```
+
+You can also open the shortened URL directly in your browser.
+
+![API requests and responses](/api_calls.png)
+
+---
+
+<h2 id="6-verify-the-generated-tests">6. Verify the generated tests</h2>
+
+Stop the recording process with `Ctrl+C`.
+
+Now inspect the generated Keploy files:
+
+```bash
+find keploy -maxdepth 3 -type f | sort
+```
+
+You should see test cases, mocks, and reports under the `keploy/` directory.
+
+![Generated Keploy test cases and mocks](/keploy_tests.png)
+
+A typical structure looks like:
+
+```text
+keploy/
+├── testReports/
+├── test-set-0/
+│   ├── mocks.yaml
+│   └── tests/
+│       └── test-1.yaml
+└── test-set-1/
+    ├── mocks.yaml
+    └── tests/
+        ├── post-url-1.yaml
+        ├── get-...-1.yaml
+        └── get-...-2.yaml
+```
+
+Each test case contains the recorded request and expected response.
+
+For example:
+
+```yaml
+req:
+  method: POST
+  url: http://localhost:8082/url
+
+resp:
+  status_code: 200
+```
+
+Keploy also records PostgreSQL interactions in the generated mock data.
+
+---
+
+<h2 id="7-replay-the-recorded-tests"> 7. Replay the recorded tests </h2>
+
+Now run the recorded test cases:
+
+```bash
+sudo -E PATH=$PATH keploy test -c "./echo-psql-url-shortener"
+```
+
+![Keploy test run with all recorded tests passing](/keploy_test.png)
+
+During test mode, Keploy:
+
+During test mode, Keploy:
+
+During test mode, Keploy:
+
+**→ Replays** the recorded API requests.
+
+**→ Uses** the captured dependency mocks.
+
+**→ Compares** the application's responses with the recorded expectations.
+
+**→ Reports** whether the test passes or fails.
+
+### Record once, replay many times
+
+The workflow is now:
+
+```text
+Real API traffic
+       ↓
+   Keploy record
+       ↓
+Test cases + mocks
+       ↓
+   Keploy test
+       ↓
+Regression detection
+```
+
+That makes the recorded interactions useful for local regression testing and for running the same checks repeatedly as the application changes.
+
+---
+
+<h2 id="what-youve-accomplished">What you've accomplished</h2>
+
+You started with a working Go + Echo + PostgreSQL application and turned real API interactions into reusable automated tests.
+
+You:
+
+→  Started PostgreSQL with Docker
+
+→  Ran the Go application locally
+
+→ Recorded real API traffic with Keploy
+
+→ Automatically generated test cases
+
+→ Captured PostgreSQL dependency behaviour
+
+→ Replayed the recorded interactions
+
+→ Verified the results without manually writing each test
+
+## Next time you change the application
+
+Run the same recorded tests again.
+
+If the application's behaviour changes unexpectedly, the recorded expectations give you a regression signal without requiring you to recreate the original API interactions manually.
+
+**Real traffic → Recorded tests → Repeatable verification.**
+
+Happy testing!!
+

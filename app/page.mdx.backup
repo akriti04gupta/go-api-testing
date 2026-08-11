@@ -1,0 +1,19 @@
+# Keploy + Go
+
+A beginner-friendly guide to recording and replaying API test cases with Keploy.
+
+## What we'll build
+
+We'll run a Go + Echo URL shortener application, record API traffic with Keploy, and replay the generated test cases.
+
+## Prerequisites
+
+- Go
+- Docker
+- Keploy
+- curl
+
+## Start the application
+
+```bash
+go build -cover
