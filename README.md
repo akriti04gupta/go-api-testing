@@ -363,7 +363,4 @@ The tutorial is based on actually running the **Go + Echo + PostgreSQL** quickst
 ---
 
 
-**Built with Next.js + MDX + Tailwind CSS 🚀**
-
-````
-And I'd **keep the README around this length**. The benchmark README is quite long, but for a DevRel assignment, this version is easier for a reviewer to scan while still demonstrating that you understand the project.
+**Built with Next.js + MDX + Tailwind CSS 🚀
