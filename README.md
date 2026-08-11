@@ -7,7 +7,7 @@ The project is built as a single-page documentation experience using **Next.js, 
 ## 🚀 Live Demo
 
 **Live documentation:**  
-go-api-testing.vercel.app/
+[go-api-testing.vercel.app/](https://go-api-testing.vercel.app/)
 
 **Source code:**  
 https://github.com/akriti04gupta/go-api-testing
@@ -329,7 +329,7 @@ Live documentation
 ```
 
 **Live site:**
-[go-api-testing.vercel.app/](go-api-testing.vercel.app/)
+[go-api-testing.vercel.app/](https://go-api-testing.vercel.app/)
 
 ---
 
